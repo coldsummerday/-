@@ -1,0 +1,5 @@
+# depslib dependency file v1.0
+1476194409 source:d:\code\一个链域实现双向链表\main.c
+	<stdio.h>
+	<stdlib.h>
+
