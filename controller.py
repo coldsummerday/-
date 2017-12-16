@@ -22,17 +22,17 @@ class Ros(object):
     ##灯光数据返回
     def light_callback(self,data):
         self.light_data = data.data
-	print('light_block'+str(data.data))
+	    print('light_block'+str(data.data))
     
     def init_listenner(self):
         rospy.Subscriber("light_block",std_msgs.msg.Int32,self.light_callback)
         rospy.spin()
     
     def light_block_listenner(self):
-	rospy.Subscriber("light_block",std_msgs.msg.Int32,self.light_block_callback)
+	    rospy.Subscriber("light_block",std_msgs.msg.Int32,self.light_block_callback)
         rospy.spin()
     def light_block_callback(self,data):
-	print('light_block'+str(data.data))
+	    print('light_block'+str(data.data))
     def led_publish(self,data):
         self.led_message_talker.publish(data)
     
@@ -48,20 +48,7 @@ def listenner():
     rospy.Subscriber("light_block",std_msgs.msg.Int32,callback)
     rospy.spin()
 
-class TcpController(object):
-    def __init__(self,ip,port):
-        self.socket_handle = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.socket_handle.bind((ip,port))
-        self.socket_handle.listen(5)
-    
-    def connect(self):
-        while True:
-           accept_sock,addr = self.socket_handle.accept()
-           connect_thread = threading.Thread(target=self.deal_with_message,args=(accept_sock,addr))
-           connect_thread.start()
-    def deal_with_message(self,sock,addr):
-        while True:
-            a=2
+
 
 
 class Serial(object):
@@ -75,20 +62,31 @@ class Serial(object):
         while True:
             a=1
 
+def sockinit():
+    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    s.bind(('192.168.191.2',8888))
+    s.listen(1)
+    return s
+
+def tcplink(sock,addr,ros_handle):
+    while True:
+        data = sock.recv(1024)
+        if data == 'exit' or not data:
+            break
+        if data == 't':
+            tdata = sock.recv(1024)
+            ros_handle.led_publish(int(tdata))
+        if data == 'b':
+            ros_handle.buzzer_publish(1)
+            
+
 if __name__=="__main__":
     ros_handle = Ros()
-    print('2')
-    #ros_handle.init_listenner()
-    listenner()
-    print('init')
+    server_socket = sockinit()
     while True:
-        time.sleep(2)
-        data = random.randint(0,5)
-        ros_handle.led_publish(data)
-	print('led')
-	ros_handle.buzzer_publish(1)
-	print('buzzer')
-	time.sleep(1)    
-            
+        s,addr =  server_socket.accept()
+        t1 = threading.Thread(target=tcplink,args=(s,addr,ros_handle,))
+        t1.start()
+    
         
         
