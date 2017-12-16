@@ -22,7 +22,6 @@ class Ros(object):
     ##灯光数据返回
     def light_callback(self,data):
         self.light_data = data.data
-	    print('light_block'+str(data.data))
     
     def init_listenner(self):
         rospy.Subscriber("light_block",std_msgs.msg.Int32,self.light_callback)
@@ -32,7 +31,7 @@ class Ros(object):
 	    rospy.Subscriber("light_block",std_msgs.msg.Int32,self.light_block_callback)
         rospy.spin()
     def light_block_callback(self,data):
-	    print('light_block'+str(data.data))
+	    a=1
     def led_publish(self,data):
         self.led_message_talker.publish(data)
     
