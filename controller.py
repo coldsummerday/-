@@ -13,6 +13,8 @@ import time
 import random
 import time
 
+TIME_OUT = 10
+
 
 class Ros(object):
     def __init__(self):
@@ -52,6 +54,8 @@ class Flag(object):
         self.boxopen_flag = False
         #python2没有枚举类,所以用int值表示led状态,1:闪,代表到时没吃药,2,灭,代表药盒没药,3,黄:药品进盒等待 4:红,准备到吃药时间
         self.led_state = 0
+        ##标记tcp是否断开,否则将会一直推送
+        self.tcp_flag = False
 
 
 class Serial(object):
@@ -79,14 +83,13 @@ def tcplink(sock,addr,ros_handle):
             break
         if data == 't':
             tdata = sock.recv(1024)
-            print(tdata)
-            t2 = threading.Thread(target=threadingtest,args=(ros_handle,tdata,))
+            t2 = threading.Thread(target=threadingtest,args=(ros_handle,float(tdata),sock,))
             t2.start()
         if data == 'b':
             ros_handle.buzzer_publish(1)
             state_class.boxopen_flag = True
 
-def threadingtest(ros_handle,eat_time):
+def threadingtest(ros_handle,eat_time,sock):
     global state_class
     ros_handle.led_publish(3)
     state_class.led_state = 3
@@ -102,8 +105,17 @@ def threadingtest(ros_handle,eat_time):
         nowtime = time.time()
     ros_handle.led_publish(1)
     while not state_class.boxopen_flag:
-         ros_handle.buzzer_publish(1)
-         time.sleep(1)
+        ros_handle.buzzer_publish(1)
+        time.sleep(1)
+        nowtime = time.time()
+        if (nowtime-eat_time) >TIME_OUT:
+            senddata = {
+                'id':0,
+                'event':'time_out',
+                'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            }
+            sock.send(senddata)
+        
     ros_handle.led_publish(2)
     state_class.led_state = 2
     
@@ -114,14 +126,27 @@ def delayToLed(time,data,ros_handle):
         nowtime = time.time()
     ros_handle.led_publish(data)
 
+def temperature_thread(sock,serial_handle):
+    global state_class
+    while True:
+        sock.send('temp!!')
+        time.sleep(5)
+        if not state_class.tcp_flag:
+            print("connect close!")
+            break 
+        
 if __name__=="__main__":
     ros_handle = Ros()
     state_class = Flag()
     server_socket = sockinit()
     while True:
         s,addr =  server_socket.accept()
+        t2 = threading.Thread(target=temperature_thread,args=(s,1,))
         t1 = threading.Thread(target=tcplink,args=(s,addr,ros_handle,))
+        t1.daemon()
         t1.start()
+        t2.daemon()
+        t2.start()
     
         
         
