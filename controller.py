@@ -56,6 +56,14 @@ class Flag(object):
         self.led_state = 0
         ##标记tcp是否断开,否则将会一直推送
         self.tcp_flag = False
+        self.send_flag = False
+    
+    def reset(self):
+        self.boxopen_flag = False
+        self.buzzer_flag = False
+        self.led_state = 0
+        self.tcp_flag = False
+        self.send_flag = False
 
 
 class Serial(object):
@@ -71,15 +79,20 @@ class Serial(object):
 
 def sockinit():
     s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    s.bind(('192.168.199.172',8888))
+    s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)    
+    s.bind(('192.168.191.2',8888))
     s.listen(1)
     return s
-
 def tcplink(sock,addr,ros_handle):
     global state_class
     while True:
-        data = sock.recv(1024)
+        try:
+            data = sock.recv(1024)
+        except :
+            break
         if data == 'exit' or not data:
+            state_class.tcp_flag = False
+            state_class.reset()
             break
         if data == 't':
             tdata = sock.recv(1024)
@@ -91,6 +104,8 @@ def tcplink(sock,addr,ros_handle):
 
 def threadingtest(ros_handle,eat_time,sock):
     global state_class
+    state_class.boxopen_flag = False
+    state_class.send_flag = False
     ros_handle.led_publish(3)
     state_class.led_state = 3
     nowtime = time.time()
@@ -108,13 +123,10 @@ def threadingtest(ros_handle,eat_time,sock):
         ros_handle.buzzer_publish(1)
         time.sleep(1)
         nowtime = time.time()
-        if (nowtime-eat_time) >TIME_OUT:
-            senddata = {
-                'id':0,
-                'event':'time_out',
-                'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-            }
-            sock.send(senddata)
+        if (nowtime-eat_time) >TIME_OUT and not state_class.send_flag:
+            until_time ='t-' + time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+            sock.send(str(until_time))
+            state_class.send_flag = True
         
     ros_handle.led_publish(2)
     state_class.led_state = 2
@@ -129,7 +141,12 @@ def delayToLed(time,data,ros_handle):
 def temperature_thread(sock,serial_handle):
     global state_class
     while True:
-        sock.send('temp!!')
+        try:
+            print('send temp!')
+            sock.send('c-'+19*'s')
+        except:
+            print("connect close!")
+            break
         time.sleep(5)
         if not state_class.tcp_flag:
             print("connect close!")
@@ -141,11 +158,12 @@ if __name__=="__main__":
     server_socket = sockinit()
     while True:
         s,addr =  server_socket.accept()
+        state_class.tcp_flag = True
         t2 = threading.Thread(target=temperature_thread,args=(s,1,))
         t1 = threading.Thread(target=tcplink,args=(s,addr,ros_handle,))
-        t1.daemon()
+        t1.setDaemon(True)
         t1.start()
-        t2.daemon()
+        t2.setDaemon(True)
         t2.start()
     
         
