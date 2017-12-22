@@ -180,4 +180,302 @@ o(n的二次方)
 
 
 
+###最长公共子序列问题:
+
+
+####优化解结构:
+设X=(x1, ..., xm)、Y=(y1, ..., yn)
+是两个序列，Z=(z1, ..., zk)是X与Y的LCS，我们有：
+
+* 如果xm=yn, 则Zk=Xm=Yn, Zk-1是Xm-1和Yn-1的LCS:LCSXY = LCSXm-1Yn-1 + Xm=Yn
+* 如果xmyn，且zkxm，则Z是Xm-1和Y的LCS，即LCSXY= LCSXm-1Y
+* 如果xmyn,且zkyn,则Z是X与Yn-1的LCS，即LCSXY= LCSXYn-1
+
+
+
+图解为:
+![](http://orh99zlhi.bkt.clouddn.com/2017-12-21,16:10:12.jpg)
+
+子问题重复性:
+![](http://orh99zlhi.bkt.clouddn.com/2017-12-21,16:12:05.jpg)
+
+
+解决办法:
+ C[i, j] = Xi与Yj 的LCS的长度:
+ LCS的递归方程为:
+
+* C[i,j]=0,if i=o or j=0
+* C[i,j] = C[i-1,j-1] + 1,if i,j>0 and xi=yj
+* C[i,j] = max(C[i-1,j],C[i,j-1]),if i,j>0,and xi不等于yj
+
+![](http://orh99zlhi.bkt.clouddn.com/2017-12-21,16:18:45.jpg)
+
+
+计算过程:
+    ![](http://orh99zlhi.bkt.clouddn.com/2017-12-21,16:19:26.jpg)
+
+
+伪代码:
+
+```
+      LCS-length(X, Y)
+      m=length(X)；n=length(Y)；
+      For   i1   To   m   Do   C[i,0]0;
+      For   j1   To   n    Do   C[0,j]0;
+      For   i1   To   m   Do
+           For   j1   To   n   Do
+               If  xi = yj 
+               Then C[i,j]C[i-1,j-1]+1；B[i,j]“↖”; 
+               Else If C[i-1,j]C[i,j-1]
+                       Then C[i,j]C[i-1,j]; B[i,j]“↑”;
+                       Else C[i,j]C[i,j-1]; B[i,j]“←”; 
+   Return C and B. 
+```
+
+```
+Print-LCS(B, X, i, j)
+IF  i=0  or  j=0  THEN  Return;
+IF  B[i, j]=“↖”  
+THEN  Print-LCS(B, X, i-1, j-1);  Print xi; 
+ELSE   If   B[i, j]=“↑”  
+             THEN   Print-LCS(B, X, i-1, j);
+             ELSE   Print-LCS(B, X, i, j-1).
+
+Print-LCS(B, X, length(X), length(Y))
+可打印出X与Y的LCS。 
+```
+
+```
+
+#include <iostream>
+#include <string>
+using namespace std;
+#define  MAX_LENGTH  100
+int c[MAX_LENGTH][MAX_LENGTH]={0};
+int order[MAX_LENGTH][MAX_LENGTH]={0} ;
+void  lcs_length(string a,string b){
+
+    int m = a.size();
+    int n= b.size();
+    for(int i=0;i<=m;i++)
+    {
+        c[i][0]=0;
+    }
+    for(int i=1;i<=n;i++)
+    {
+        c[0][i]=0;
+    }
+    for(int i=1;i<=m;i++)
+    {
+        for(int j=1;j<=n;j++)
+        {
+            if(a[i]==b[j])
+            {
+                c[i][j] = c[i-1][j-1] +1;
+                order[i][j]=1;
+
+            } else if (c[i-1][j]>c[i][j-1])
+            {
+                c[i][j] = c[i-1][j];
+                order[i][j]=2;
+            } else{
+                    c[i][j] = c[i][j-1];
+                    order[i][j]=3;
+                }
+
+        }
+    }
+
+}
+void print_lcs(string,int,int);
+int main()
+{
+
+    string a;
+    string b;
+    cout<<"请输入字符串A"<<endl;
+  cin>>a;
+     cout<<"请输入字符串B"<<endl;
+    cin>>b;
+    for(int i=0;i<MAX_LENGTH;i++)
+    {
+        for(int j=0;j<MAX_LENGTH;j++)
+        {
+            c[i][j]=0;
+            order[i][j]=0;
+        }
+    }
+    int m = a.size();
+    int n = b.size();
+
+    lcs_length(a,b);
+
+    print_lcs(a,m,n);
+}
+
+void print_lcs(string a,int i,int j)
+{
+
+    if (i==0 || j ==0)
+    {
+        return;
+    } else{
+        if (order[i][j]==1)
+        {
+            print_lcs(a,i-1,j-1);
+            cout<<a[i];
+        } else{
+            if (order[i][j]==2)
+            {
+                print_lcs(a,i-1,j);
+            } else{
+                print_lcs(a,i,j-1);
+            }
+        }
+    }
+}
+
+
+```
+
+
+
+算法复杂度:
+
+时间O(n的平方)
+
+
+空间O(n的平方)
+
+###0/1背包问题:
+问题描述:
+
+给定n种物品和一个背包，物品i的重量是wi，价值vi,  背包容量为C,  问如何选择装入背包的物品，使装入背包中的物品的总价值最大？
+
+
+限制:
+
+对于每种物品只能选择完全装入或不装入，一个物品至多装入一次。
+
+
+输入:$C>0, wi>0, vi>0, 1 <=i<=n$
+输出:$$(x1, x2, …, xn), xi属于{0, 1}, 满足∑1<=i<=n Wi*xi<= C,   ∑1<=i<=n,vi*xi 最大$$
+
+![](http://orh99zlhi.bkt.clouddn.com/2017-12-22,11:29:30.jpg)
+                 
+递归方程:
+![](http://orh99zlhi.bkt.clouddn.com/2017-12-22,11:30:11.jpg)
+
+第一条:当背包容量小于第I个物品重量的时候,肯定不选第i个物品
+第二条:是否选择第I个物品加入背包
+第三条:小于的物品重量的时候,不选为0
+第四条:只选一个物品的时候
+
+
+填写规则:
+从下往上,从左往右:
+![](http://orh99zlhi.bkt.clouddn.com/2017-12-22,11:36:23.jpg)
+
+
+算法:
+![](http://orh99zlhi.bkt.clouddn.com/2017-12-22,11:37:02.jpg)
+
+例子:
+
+当重量分别是:2,2,6,5,4
+价值分别是:6,3,5,4,6
+
+![](http://orh99zlhi.bkt.clouddn.com/2017-12-22,22:46:13.jpg)
+
+```
+#include <iostream>
+#include <string>
+using namespace std;
+int weights[] = {0,2,2,6,5,4};
+int values[] ={0,6,3,5,4,6};
+int W = 10;
+int m[6][10]={0};
+
+void Package0_1(int n);
+void print_select(int index,int count);
+int min(int a,int b){
+    if(a>b)
+    {
+        return b;
+    } else{
+        return a;
+    }
+}
+int max(int a,int b)
+{
+    if(a>b)
+    {
+        return a;
+    } else
+    {
+        return b;
+    }
+}
+int main()
+{
+     Package0_1(5);
+    print_select(1,10);
+}
+
+void Package0_1(int n)
+{
+
+        for(int j=1;j<=min(weights[n]-1,W);j++)
+        {
+            m[n][j]=0;
+        }
+        for(int j=weights[n];j<=W;j++)
+        {
+            m[n][j]=values[n];
+
+        }
+
+    cout<<endl;
+    for(int i=n-1;i>=1;i--)
+    {
+        for(int j=0;j<=min(weights[i]-1,W);j++)
+        {
+            m[i][j] = m[i+1][j];
+        }
+        for(int j = weights[i];j<=W;j++)
+        {
+            m[i][j] = max(m[i+1][j],m[i+1][j-weights[i]]+values[i]);
+        }
+
+    }
+
+
+
+
+
+
+}
+void print_select(int index,int count)
+{
+    if (index > 5)
+    {
+        return;
+    }
+    if(m[index][count]==m[index+1][count])
+    {
+        cout<<index<<"not  selct"<<endl;
+        print_select(index+1,count);
+    }
+    else
+    {
+        cout<<index<<"selct"<<endl;
+        print_select(index+1,count-weights[index]);
+
+    }
+}
+```
+
+
+  
+
 

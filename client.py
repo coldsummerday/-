@@ -7,7 +7,7 @@ import time
 # 创建一个socket:
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # 建立连接:
-s.connect(('192.168.191.5', 8888))
+s.connect(('192.168.199.172', 8888))
 tcp_flag = True
 def tcplink(sock):
 
@@ -18,7 +18,7 @@ def tcplink(sock):
         if data != 'exit':
             sock.send(data)
             if data == 't':
-                sock.send(str(time.time()+30.0))
+                sock.send(str(long(time.time()+30)*1000))
         else:
             tcp_flag = False
             break
